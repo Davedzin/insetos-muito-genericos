@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algoritmo Genético - Besouros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Algoritmo Genético - Simulação de Besouros</h1>
+        <p>Este projeto simula a evolução de uma população de besouros usando um algoritmo genético.</p>
+
+        <label for="tamanhoPopulacao">Tamanho da População:</label>
+        <input type="number" id="tamanhoPopulacao" value="10" min="1"><br><br>
+
+        <label for="geracoes">Número de Gerações:</label>
+        <input type="number" id="geracoes" value="5" min="1"><br><br>
+
+        <label for="taxaMutacao">Taxa de Mutação (0 a 1):</label>
+        <input type="number" id="taxaMutacao" value="0.1" step="0.1" min="0" max="1"><br><br>
+
+        <label for="tipoMutacao">Tipo de Mutação:</label>
+        <select id="tipoMutacao">
+            <option value="aleatoria">Aleatória</option>
+            <option value="pequena">Pequena</option>
+            <option value="dirigida">Dirigida</option>
+        </select><br><br>
+
+        <label for="tipoCrossover">Tipo de Cross-Over:</label>
+        <select id="tipoCrossover">
+            <option value="onePoint1">One-Point 1</option>
+            <option value="onePoint2">One-Point 2</option>
+            <option value="uniform">Uniform</option>
+            <option value="arithmetic">Aritmético</option>
+        </select><br><br>
+
+        <button onclick="executarAlgoritmo()">Executar Algoritmo Genético</button>
+
+        <div class="output">
+            <h2>Resultados:</h2>
+            <pre id="resultado"></pre>
+        </div>
+    </div>
+
+    <script>
+        class Besouro {
+            constructor(cor) {
+                this.cor = cor; // Representa a cor do besouro (0 a 100, onde 0 é claro e 100 é escuro)
+            }
+        }
+
+        // 1. Gera a população inicial de besouros
+        function gerarPopulacao(tamanho) {
+            let populacao = [];
+            for (let i = 0; i < tamanho; i++) {
+                let cor = Math.floor(Math.random() * 101); // Cor aleatória entre 0 e 100
+                populacao.push(new Besouro(cor));
+            }
+            return populacao;
+        }
+
+        // 2. Seleção natural por roleta (besouros mais escuros têm maior chance de serem selecionados)
+        function selecaoNatural(populacao) {
+            let somaCores = populacao.reduce((acc, besouro) => acc + besouro.cor, 0);
+            let selecionados = [];
+
+            for (let i = 0; i < populacao.length; i++) {
+                let valorRoleta = Math.random() * somaCores;
+                let acumulado = 0;
+
+                for (let besouro of populacao) {
+                    acumulado += besouro.cor;
+                    if (acumulado >= valorRoleta) {
+                        selecionados.push(besouro);
+                        break;
+                    }
+                }
+            }
+
+            return selecionados;
+        }
+
+        // 3. Cross-over (cruzamento)
+        function crossover(pai1, pai2, tipoCrossover) {
+            let filho;
+
+            switch (tipoCrossover) {
+                case 'onePoint1': // One-Point 1: Herda cor de P1
+                    filho = new Besouro(pai1.cor);
+                    break;
+                case 'onePoint2': // One-Point 2: Herda cor de P2
+                    filho = new Besouro(pai2.cor);
+                    break;
+                case 'uniform': // Uniform: Média das cores de P1 e P2
+                    filho = new Besouro((pai1.cor + pai2.cor) / 2);
+                    break;
+                case 'arithmetic': // Aritmético: Média arredondada das cores de P1 e P2
+                    filho = new Besouro(Math.floor((pai1.cor + pai2.cor) / 2));
+                    break;
+                default:
+                    filho = new Besouro(pai1.cor); // Padrão: One-Point 1
+            }
+
+            return filho;
+        }
+
+        // 4. Mutação (aleatória, pequena ou dirigida)
+        function mutacao(besouro, taxaMutacao, tipoMutacao) {
+            if (Math.random() < taxaMutacao) {
+                switch (tipoMutacao) {
+                    case 'aleatoria':
+                        besouro.cor = Math.floor(Math.random() * 101); // Mutação aleatória
+                        break;
+                    case 'pequena':
+                        besouro.cor += Math.floor(Math.random() * 11) - 5; // Pequena variação (-5 a +5)
+                        besouro.cor = Math.max(0, Math.min(100, besouro.cor)); // Garante que a cor fique entre 0 e 100
+                        break;
+                    case 'dirigida':
+                        besouro.cor += 10; // Aumenta a cor em 10 (mutação dirigida para besouros mais escuros)
+                        besouro.cor = Math.min(100, besouro.cor); // Garante que a cor não ultrapasse 100
+                        break;
+                }
+            }
+            return besouro;
+        }
+
+        // Função principal para simular o algoritmo genético
+        function algoritmoGenetico(tamanhoPopulacao, geracoes, taxaMutacao, tipoMutacao, tipoCrossover) {
+            let populacao = gerarPopulacao(tamanhoPopulacao);
+            let resultados = [];
+
+            for (let geracao = 0; geracao < geracoes; geracao++) {
+                resultados.push(`Geração ${geracao + 1}: ${populacao.map(b => b.cor).join(', ')}`);
+
+                // Seleção natural
+                let selecionados = selecaoNatural(populacao);
+
+                // Cross-over para gerar nova população
+                let novaPopulacao = [];
+                for (let i = 0; i < tamanhoPopulacao; i++) {
+                    let pai1 = selecionados[Math.floor(Math.random() * selecionados.length)];
+                    let pai2 = selecionados[Math.floor(Math.random() * selecionados.length)];
+                    let filho = crossover(pai1, pai2, tipoCrossover);
+                    novaPopulacao.push(filho);
+                }
+
+                // Aplicar mutação
+                for (let besouro of novaPopulacao) {
+                    mutacao(besouro, taxaMutacao, tipoMutacao);
+                }
+
+                populacao = novaPopulacao;
+            }
+
+            resultados.push("População final: " + populacao.map(b => b.cor).join(', '));
+            return resultados.join('\n');
+        }
+
+        // Função para executar o algoritmo e exibir os resultados na página
+        function executarAlgoritmo() {
+            let tamanhoPopulacao = parseInt(document.getElementById('tamanhoPopulacao').value);
+            let geracoes = parseInt(document.getElementById('geracoes').value);
+            let taxaMutacao = parseFloat(document.getElementById('taxaMutacao').value);
+            let tipoMutacao = document.getElementById('tipoMutacao').value;
+            let tipoCrossover = document.getElementById('tipoCrossover').value;
+
+            let resultado = algoritmoGenetico(tamanhoPopulacao, geracoes, taxaMutacao, tipoMutacao, tipoCrossover);
+            document.getElementById('resultado').textContent = resultado;
+        }
+    </script>
+</body>
+</html>
